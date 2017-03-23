@@ -34,6 +34,12 @@ class Compiler
 	/** @var bool */
 	private $debugging = FALSE;
 
+	/** @var bool */
+	private $async = FALSE;
+
+	/** @var bool */
+	private $defer = FALSE;
+
 	public function __construct(IFileCollection $files, IOutputNamingConvention $convention, $outputDir)
 	{
 		$this->collection = $files;
@@ -118,6 +124,42 @@ class Compiler
 	}
 
 	/**
+	 * @return boolean
+	 */
+	public function isAsync()
+	{
+		return $this->async;
+	}
+
+	/**
+	 * @param boolean $async
+	 * @return Compiler
+	 */
+	public function setAsync($async)
+	{
+		$this->async = (bool) $async;
+		return $this;
+	}
+
+	/**
+	 * @return boolean
+	 */
+	public function isDefer()
+	{
+		return $this->defer;
+	}
+
+	/**
+	 * @param boolean $defer
+	 * @return Compiler
+	 */
+	public function setDefer($defer)
+	{
+		$this->defer = $defer;
+		return $this;
+	}
+
+	/**
 	 * Set check last modified
 	 * @param bool $checkLastModified
 	 */
@@ -190,7 +232,6 @@ class Compiler
 			return array(
 				$this->generateFiles($files, $ifModified, $watchFiles),
 			);
-
 		} else {
 			$arr = array();
 
@@ -210,7 +251,7 @@ class Compiler
 		$lastModified = $this->checkLastModified ? $this->getLastModified($watchFiles) : 0;
 
 		if (!$ifModified || !file_exists($path) || $lastModified > filemtime($path) || $this->debugging === TRUE) {
-			$outPath = in_array('safe', stream_get_wrappers()) ? 'safe://' . $path : $path;
+			$outPath = in_array('nette.safe', stream_get_wrappers()) ? 'nette.safe://' . $path : $path;
 			file_put_contents($outPath, $this->getContent($files));
 		}
 

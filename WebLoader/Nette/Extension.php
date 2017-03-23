@@ -2,16 +2,14 @@
 
 namespace WebLoader\Nette;
 
+use Nette;
 use Nette\Configurator;
 use Nette\DI\Compiler;
 use Nette\DI\CompilerExtension;
 use Nette\DI\Config\Helpers;
 use Nette\DI\ContainerBuilder;
 use Nette\Utils\Finder;
-use Nette;
 use WebLoader\FileNotFoundException;
-
-
 
 /**
  * @author Jan Marek
@@ -37,6 +35,8 @@ class Extension extends CompilerExtension
 				'filters' => array(),
 				'fileFilters' => array(),
 				'joinFiles' => TRUE,
+				'async' => FALSE,
+				'defer' => FALSE,
 				'namingConvention' => '@' . $this->prefix('jsNamingConvention'),
 			),
 			'cssDefaults' => array(
@@ -51,15 +51,14 @@ class Extension extends CompilerExtension
 				'filters' => array(),
 				'fileFilters' => array(),
 				'joinFiles' => TRUE,
+				'async' => FALSE,
+				'defer' => FALSE,
 				'namingConvention' => '@' . $this->prefix('cssNamingConvention'),
 			),
-			'js' => array(
-
-			),
-			'css' => array(
-
-			),
-			'debugger' => '%debugMode%'
+			'js' => array(),
+			'css' => array(),
+			'debugger' => '%debugMode%',
+			'appDir' => '%appDir%'
 		);
 	}
 
@@ -74,10 +73,12 @@ class Extension extends CompilerExtension
 		$builder->addDefinition($this->prefix('jsNamingConvention'))
 			->setFactory('WebLoader\DefaultOutputNamingConvention::createJsConvention');
 
+		$config['appDir'] = \Nette\DI\Helpers::expand($config['appDir'], $builder->parameters);
+
 		if ($config['debugger']) {
 			$builder->addDefinition($this->prefix('tracyPanel'))
 				->setClass('WebLoader\Nette\Diagnostics\Panel')
-				->setArguments(array($builder->expand('%appDir%')));
+				->setArguments([$config['appDir']]);
 		}
 
 		$builder->parameters['webloader'] = $config;
@@ -126,7 +127,9 @@ class Extension extends CompilerExtension
 				$config['tempDir'],
 			));
 
-		$compiler->addSetup('setJoinFiles', array($config['joinFiles']));
+		$compiler->addSetup('setJoinFiles', array($config['joinFiles']))
+			->addSetup('setAsync', array($config['async']))
+			->addSetup('setDefer', array($config['defer']));
 
 		if ($builder->parameters['webloader']['debugger']) {
 			$compiler->addSetup('@' . $this->prefix('tracyPanel') . '::addLoader', array(
@@ -154,7 +157,7 @@ class Extension extends CompilerExtension
 
 	public function afterCompile(Nette\PhpGenerator\ClassType $class)
 	{
-		$meta = $class->properties['meta'];
+		$meta = $class->getProperties()['meta'];
 		if (array_key_exists('webloader\\nette\\loaderfactory', $meta->value['types'])) {
 			$meta->value['types']['webloader\\loaderfactory'] = $meta->value['types']['webloader\\nette\\loaderfactory'];
 		}
@@ -209,7 +212,6 @@ class Extension extends CompilerExtension
 				foreach ($foundFilesList as $foundFilePathname) {
 					$normalizedFiles[] = $foundFilePathname;
 				}
-
 			} else {
 				$this->checkFileExists($file, $sourceDir);
 				$normalizedFiles[] = $file;
