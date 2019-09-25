@@ -65,6 +65,7 @@ class Extension extends CompilerExtension
 	public function loadConfiguration()
 	{
 		$builder = $this->getContainerBuilder();
+		bdump($this->config);
 		$config = $this->getConfig($this->getDefaultConfig());
 
 		$builder->addDefinition($this->prefix('cssNamingConvention'))
