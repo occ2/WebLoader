@@ -65,8 +65,8 @@ class Extension extends CompilerExtension
 	public function loadConfiguration()
 	{
 		$builder = $this->getContainerBuilder();
-		bdump($this->config);
-		$config = $this->getConfig($this->getDefaultConfig());
+		
+		$config = Helpers::merge($this->config, $this->getDefaultConfig());
 
 		$builder->addDefinition($this->prefix('cssNamingConvention'))
 			->setFactory('WebLoader\DefaultOutputNamingConvention::createCssConvention');
